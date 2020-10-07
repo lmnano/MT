@@ -1,0 +1,146 @@
+---
+title: "poskus_00_final"
+author: "Luka Močivnik"
+date: "3 October 2020"
+output: html_document
+---
+
+#Intro
+
+This is the latest version of the pipeline used for short DNA samples with high error rates. The default dataset is DAB053_demo01.fastq with tags switched to 16 bp ones.
+
+
+Setting seed for consistency in random processes/if working on a sample of sequences.
+```{r}
+set.seed(1)
+```
+
+
+#Tag switch
+
+If necessary this chunck switches tags in the demo data.
+
+```{r, eval=FALSE}
+source("./functions/tag_switch_00.R")
+system.time(tag_switch())
+```
+
+
+#Error simulation
+
+If necessary this is error simulation.
+
+```{r, eval=FALSE}
+source("./functions/error_sim_00.R")
+system.time(error_sim())
+
+```
+
+
+#Data import
+
+Importing sequences, tags, primers, ngsfilter.
+
+```{r}
+source("./functions/import_functions_00.R")
+demo_data_import(subset_seq = TRUE, subset_size = 10000, input_folder = "./data/error_data/", input_file = "DAB053_demo01.tag16.error10.indel.s34i33d33.fastq")
+tag_import()
+primer_import()
+ngsfilter_import()
+```
+
+#Tag and primer search
+
+Searching for primers and tags.
+
+```{r}
+if (.Platform$OS.type == "unix") {
+  source("./functions/tag_search_00.R")
+
+}else if (.Platform$OS.type == "windows"){
+  source("./functions/tag_search_00w.R")
+
+}
+
+system.time(tag_search_par(indels = T))
+system.time(primer_search_par(indels = T))
+
+library(data.table)
+output = sprintf("./data/tag_primer_hits/hits_primer_f_%s.txt", data_name)
+fwrite(x = hits_primer_f, file = output)
+output = sprintf("./data/tag_primer_hits/hits_primer_r_%s.txt", data_name)
+fwrite(x = hits_primer_r, file = output)
+output = sprintf("./data/tag_primer_hits/hits_primer_sum_%s.txt", data_name)
+fwrite(x = hits_primer_sum, file = output)
+output = sprintf("./data/tag_primer_hits/hits_tag_f_%s.txt", data_name)
+fwrite(x = hits_tag_f, file = output)
+output = sprintf("./data/tag_primer_hits/hits_tag_r_%s.txt", data_name)
+fwrite(x = hits_tag_r, file = output)
+output = sprintf("./data/tag_primer_hits/hits_tag_f_filter_%s.txt", data_name)
+fwrite(x = hits_tag_f_filter, file = output)
+output = sprintf("./data/tag_primer_hits/hits_tag_r_filter_%s.txt", data_name)
+fwrite(x = hits_tag_r_filter, file = output)
+output = sprintf("./data/tag_primer_hits/hits_tag_sum_%s.txt", data_name)
+fwrite(x = hits_tag_sum, file = output)
+
+```
+
+#Primer and tag id
+
+Connecting primers and tags with ngsfilter.
+
+```{r}
+if (.Platform$OS.type == "unix") {
+  source("./functions/primer_tag_id_00.R")
+
+}else if (.Platform$OS.type == "windows"){
+  source("./functions/primer_tag_id_00w.R")
+
+}
+system.time(primer_tag_id_parF(indels = T))
+
+output = sprintf("./data/primer_tag_ngs/primer_tag_ngs_%s.txt", data_name)
+fwrite(x = primer_tag_ngs, file = output)
+```
+
+#Alignment of sample-cluster groups and length correction
+
+```{r}
+source("./functions/alignment_00.R")
+system.time(alignment())
+
+#source("./functions/alignment_00w.R")
+#system.time(alignment())
+output = sprintf("./data/fixSeq_alignment_output/fixSeq_%s.txt", data_name)
+fwrite(x = fixSeq, file = output)
+```
+
+# Clustering and consesnsus
+
+```{r}
+source("./functions/clustering_consensus_00.R")
+system.time(clustering_par())
+
+output = sprintf("./data/grouped_data_consensus/grouped_data_consensus_%s.txt", data_name)
+fwrite(x = grouped_data_consensus_par_mclapply, file = output)
+```
+
+#Fishbone allele calling
+
+```{r}
+source("./functions/fishbone_prepare_00.R")
+fishbone_prepare()
+
+library(fishbone)
+
+out2 <- mclapply(fishbone_input, FUN = callAllele, tbase = mt, verbose = FALSE)#, clean = FALSE))
+
+
+#fishbone_out <- do.call(rbind, out)
+fishbone_out <- do.call(rbind, out2)
+
+output = sprintf("./data/fishbone_out/fishbone_out_%s.txt", data_name)
+fwrite(x = fishbone_out, file = output)
+
+```
+
