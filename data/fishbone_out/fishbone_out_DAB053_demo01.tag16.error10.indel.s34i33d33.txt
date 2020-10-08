@@ -1,0 +1,1 @@
+Sample_Name,Plate,Read_Count,Marker,Run_Name,length,Position,called,flag,stutter,Sequence,TagCombo
