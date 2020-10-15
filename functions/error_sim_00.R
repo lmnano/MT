@@ -4,7 +4,7 @@
 #Still needs some optimization
 #Has setting for ratio between substitutions, insertions and deletions
 
-error_sim = function(x = "./data/demo_data/", file = "DAB053_demo01.fastq", y = "./data/error_data/", err_rate = 0.1, substitutions = 0.34, insertions = 0.16, deletions = 0.5) {
+error_sim = function(x = "./data/demo_data/", file = "DAB053demo01.tag16.fastq", y = "./data/error_data/", err_rate = 0.1, substitutions = 0.34, insertions = 0.33, deletions = 0.33) {
   
   stopifnot(substitutions + insertions + deletions == 1)
   stopifnot(err_rate < 1 & err_rate > 0)
@@ -102,7 +102,7 @@ error_sim = function(x = "./data/demo_data/", file = "DAB053_demo01.fastq", y = 
   
   
   #making a ShortReadq object for saving data as .fastq
-  reads_err = ShortReadQ(sread = err_seq, quality = errdf_k, id = id(reads))
+  reads_err = ShortReadQ(sread = err_seq, quality = errdf_k, id = reads@id)
   
   #forming output file string
   out_file = str_replace(string = file, pattern = "(.*)\\.fastq", replacement = "\\1")
