@@ -32,7 +32,7 @@ If necessary this is error simulation.
 
 ```{r, eval=FALSE}
 source("./functions/error_sim_00.R")
-system.time(error_sim())
+system.time(error_sim(err_rate = 0.02))
 
 ```
 
@@ -43,7 +43,7 @@ Importing sequences, tags, primers, ngsfilter.
 
 ```{r}
 source("./functions/import_functions_00.R")
-demo_data_import(subset_seq = TRUE, subset_size = 10000, input_folder = "./data/error_data/", input_file = "DAB053_demo01.tag16.error10.indel.s34i33d33.fastq")
+demo_data_import(subset_seq = FALSE, subset_size = 10000, input_folder = "./data/error_data/", input_file = "DAB053demo01.tag16.error3.indel.s34.i33.d33.fastq")
 tag_import()
 primer_import()
 ngsfilter_import()
@@ -99,6 +99,7 @@ if (.Platform$OS.type == "unix") {
 }
 system.time(primer_tag_id_parF(indels = T))
 
+# library(data.table)
 output = sprintf("./data/primer_tag_ngs/primer_tag_ngs_%s.txt", data_name)
 fwrite(x = primer_tag_ngs, file = output)
 ```
@@ -111,6 +112,8 @@ system.time(alignment())
 
 #source("./functions/alignment_00w.R")
 #system.time(alignment())
+
+#library(data.table)
 output = sprintf("./data/fixSeq_alignment_output/fixSeq_%s.txt", data_name)
 fwrite(x = fixSeq, file = output)
 ```
@@ -118,8 +121,12 @@ fwrite(x = fixSeq, file = output)
 # Clustering and consesnsus
 
 ```{r}
+#library(data.table)
+#input = sprintf("./data/fishbone_out/fishbone_out_DAB053demo01.tag16.error5.indel.s34.i33.d33ClustalOmega_subMatBLOSUM65.txt")#, data_name)
+#fishbone_out_error5_ClustalOmega_subMatBLOSUM65 = fread(file = input)
+
 source("./functions/clustering_consensus_00.R")
-system.time(clustering_par())
+system.time(clustering_par(indel = T, sorted_data = fixSeq))
 
 output = sprintf("./data/grouped_data_consensus/grouped_data_consensus_%s.txt", data_name)
 fwrite(x = grouped_data_consensus_par_mclapply, file = output)
@@ -128,17 +135,22 @@ fwrite(x = grouped_data_consensus_par_mclapply, file = output)
 #Fishbone allele calling
 
 ```{r}
+#input = sprintf("./data/grouped_data_consensus/grouped_data_consensus_DAB053demo01.tag16.error5.indel.s34.i33.d33ClustalOmega_subMatBLOSUM65.txt", data_name)
+#grouped_data_consensus_ClustalOmega_subMatBLOSUM65 = fread(file = input)
+
+
 source("./functions/fishbone_prepare_00.R")
-fishbone_prepare()
+fishbone_prepare(filter = T)
 
 library(fishbone)
 
-out2 <- mclapply(fishbone_input, FUN = callAllele, tbase = mt, verbose = FALSE)#, clean = FALSE))
+out2 <- mclapply(fishbone_input, FUN = callAllele, tbase = mt, verbose = FALSE)#, clean = FALSE)
 
 
 #fishbone_out <- do.call(rbind, out)
 fishbone_out <- do.call(rbind, out2)
 
+library(data.table)
 output = sprintf("./data/fishbone_out/fishbone_out_%s.txt", data_name)
 fwrite(x = fishbone_out, file = output)
 
