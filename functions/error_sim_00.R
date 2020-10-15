@@ -115,7 +115,7 @@ error_sim = function(x = "./data/demo_data/", file = "DAB053demo01.tag16.fastq",
   
   #saving data
   
-  writeFastq(object = reads_err, file = out_final, mode = "w", compress = FALSE)
+  writeFastq(object = reads_err, file = out_final, mode = "w", compress = TRUE)
   #reads_err <<- reads_err
   return()
   
