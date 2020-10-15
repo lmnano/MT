@@ -6,13 +6,14 @@
 clustering_par = function(sorted_data = fixSeq, dist_matrix_method = "lv", cluster_n = 2, min_seq_num = 20, clustering = TRUE, indel = TRUE){
   
   if (cluster_n != 2) {
-    stop("Only works on two clusters for now")
+    stop("The code is set on two clusters")
   }
   
   require(dplyr)
   require(Biostrings)
   require(DECIPHER)
   require(stringdist)
+  require(msa)
   
   #grouping the data
   grouped_data = sorted_data %>%
@@ -30,8 +31,10 @@ clustering_par = function(sorted_data = fixSeq, dist_matrix_method = "lv", clust
       
       if (indel == TRUE) {
         hicount_seqDNA = RemoveGaps(DNAStringSet(hicount_seq))
-        hicount_seqDNA = AlignSeqs(hicount_seqDNA, verbose = FALSE, processors = NULL)
+        hicount_seqDNA = AlignSeqs(hicount_seqDNA, verbose = FALSE, processors = NULL, gapOpening = c(-200, -200))
+        #hicount_seqDNA = msaMuscle(hicount_seqDNA)
         
+        #BrowseSeqs(hicount_seqDNA)
         hicount_seq = as.character(hicount_seqDNA)
       }
       
@@ -74,7 +77,7 @@ clustering_par = function(sorted_data = fixSeq, dist_matrix_method = "lv", clust
         hicount_group_cl1 = filter(x, cluster == k)
         hicount_group_cl1 = DNAStringSet(hicount_group_cl1$sequence)
         
-        hicount_cons1 = ConsensusSequence(hicount_group_cl1, threshold = 0.49)
+        hicount_cons1 = ConsensusSequence(hicount_group_cl1, threshold = 0.49, ignoreNonBases = TRUE)
         cons_seqs[k, "consensus_seq"] = as.character(hicount_cons1)
       }
       cons_seqs = filter(cons_seqs, num_of_seqs_in_cluster != 0)
@@ -105,4 +108,4 @@ clustering_par = function(sorted_data = fixSeq, dist_matrix_method = "lv", clust
   grouped_data_consensus_par_mclapply <<- grouped_data_consensus
 }
 
-#clustering01_par_mclapply()
+#clustering_par()
