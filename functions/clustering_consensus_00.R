@@ -31,9 +31,9 @@ clustering_par = function(sorted_data = fixSeq, dist_matrix_method = "lv", clust
       
       if (indel == TRUE) {
         hicount_seqDNA = RemoveGaps(DNAStringSet(hicount_seq))
-        hicount_seqDNA = AlignSeqs(hicount_seqDNA, verbose = FALSE, processors = NULL, gapOpening = c(-200, -200))
-        #hicount_seqDNA = msaMuscle(hicount_seqDNA)
-        
+        #hicount_seqDNA = AlignSeqs(hicount_seqDNA, verbose = FALSE, processors = NULL, gapOpening = c(-200, -200))
+        hicount_seqDNA = msaClustalOmega(hicount_seqDNA, substitutionMatrix = "BLOSUM65")
+        hicount_seqDNA = DNAStringSet(hicount_seqDNA)
         #BrowseSeqs(hicount_seqDNA)
         hicount_seq = as.character(hicount_seqDNA)
       }
