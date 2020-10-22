@@ -1,0 +1,241 @@
+---
+title: "poskus_00_data_analysis_primer_tag_id_all_files"
+author: "Luka Močivnik"
+date: "10/22/2020"
+output: html_document
+---
+
+```{r}
+library(data.table)
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+library(forcats)
+```
+
+Data import
+
+```{r}
+ref_files = list.files(path = "./data/primer_tag_ngs/", pattern = ".+DAB053demo01.tag\\d{1,2}\\.txt$", full.names = TRUE)
+ref_names = list.files(path = "./data/primer_tag_ngs/", pattern = ".+DAB053demo01.tag\\d{1,2}\\.txt$")
+
+err_files = list.files(path = "./data/primer_tag_ngs/", pattern = ".+DAB053demo01.tag\\d{1,2}.*s100.*\\.txt$", full.names = TRUE)
+err_names = list.files(path = "./data/primer_tag_ngs/", pattern = ".+DAB053demo01.tag\\d{1,2}.*s100.*\\.txt$")
+
+ref_files = lapply(ref_files, fread)
+names(ref_files) = ref_names
+
+err_files = lapply(err_files, fread)
+names(err_files) = err_names
+
+```
+
+Finding number of sequences for each error rate and tag.
+
+```{r}
+nSeqs = function(refData, errData){
+  errNums = lapply(1:length(err_files), function(x, errDf){
+    
+    namesErr = names(errDf)
+    errorErr = gsub(pattern = ".*error(\\d{1,2}).*", replacement = "\\1", x = namesErr)
+    error = errorErr[x]
+    cnamesErr = gsub(pattern = ".*\\.(tag\\d{1,2})\\..*", replacement = "\\1", x = namesErr)
+    ntag = cnamesErr[x]
+    nErr = nrow(errDf[[x]])
+    
+    out = cbind(error, nErr, ntag)
+    
+  }, errDf = err_files)
+  
+  errNums = do.call(rbind, errNums)
+  errNums = as.data.frame(errNums, stringsAsFactors = FALSE)
+  errNums = spread(errNums, ntag, nErr)
+  
+  refNums = lapply(1:length(ref_files), function(x, refDf){
+    
+    namesRef = names(refDf)
+    errorRef = rep(0, times = length(refDf))
+    error = errorRef[x]
+    cnamesRef = gsub(pattern = ".*\\.(tag\\d{1,2})\\..*", replacement = "\\1", x = namesRef)
+    ntag = cnamesRef[x]
+    nRef = nrow(refDf[[x]])
+    
+    out = cbind(error, nRef, ntag)
+    
+  }, refDf = ref_files)
+  
+  refNums = do.call(rbind, refNums)
+  refNums = as.data.frame(refNums, stringsAsFactors = FALSE)
+  refNums = spread(refNums, ntag, nRef)
+  
+  allNums = rbind(refNums, errNums)
+  allNums$error = as.integer(allNums$error)
+  allNums = arrange(allNums, error)
+  
+  return(allNums)
+}
+
+```
+
+```{r}
+numSeqs = nSeqs(refData = ref_files, errData = err_files)
+
+numSeqs = numSeqs %>%
+  mutate(tag12 = as.integer(tag12)) %>%
+  mutate(tag16 = as.integer(tag16)) %>%
+  mutate(tag8 = as.integer(tag8))
+```
+
+Graph for number of found sequences
+
+```{r}
+numSeqsG = gather(numSeqs, tag, n, 2:ncol(numSeqs))
+
+ggplot(numSeqsG, aes(tag, n, color = as.factor(error))) +
+  ggtitle("n of found seqs") +
+  geom_point()
+
+```
+
+Percentage of found seqs.
+
+```{r}
+percfound = lapply(1:nrow(numSeqs), function(x, df){
+  dfP = df[,2:ncol(df)]
+  perc = dfP[x,]/dfP[1,]
+  
+  perc
+}, df = numSeqs)
+
+percfound = do.call(rbind, percfound)
+percfound = cbind(error = numSeqs$error, percfound)
+
+percfoundG = gather(percfound, tag, n, 2:ncol(numSeqs))
+
+ggplot(percfoundG, aes(tag, n, color = as.factor(error))) +
+  ggtitle("percentage of found seqs") +
+  geom_point()
+
+```
+
+Checking tag combos.
+
+```{r}
+nGroup = function(data){
+  out = lapply(1:length(data), function(x, df){
+    
+    namesdf = names(df)[x]
+    tag = gsub(pattern = ".*\\.(tag\\d{1,2})\\..*", replacement = "\\1", x = namesdf)
+    error = gsub(pattern = ".*\\.error(\\d{1,2})\\..*", replacement = "\\1", x = namesdf)
+    
+    dfx = df[[x]]
+    
+    dfE = dfx  %>%
+      group_by(tag_combo, primer1, primer2, sample, locus) %>%
+      summarise(n0 = n()) %>%
+      mutate(error = error) %>%
+      mutate(tag = tag) %>%
+      mutate(sample_locus = paste(sample, locus, sep = "-"))
+    
+    dfE  
+    
+  }, df = data)
+  
+  out = do.call(rbind, out)
+  
+  return(out)
+  
+}
+
+```
+
+```{r}
+groupRef = nGroup(data = ref_files)
+groupRef = groupRef %>% 
+  mutate(error = 0)
+
+groupErr = nGroup(data = err_files)
+groupErr = groupErr %>% 
+  mutate(error = as.integer(error)) %>%
+  rename(nR = n0)
+
+joinData = left_join(groupRef, groupErr, by = c("tag_combo", "primer1", "primer2", "sample", "locus", "tag", "sample_locus"))
+
+joinData = joinData %>%
+  mutate(perc = nR/n0) %>%
+  mutate(diff = n0 - nR)
+
+joinData %>%
+  arrange(perc) %>%
+  ggplot(aes(fct_inorder(sample_locus), perc, color = as.factor(error.y))) +
+    geom_point() +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+    facet_wrap(~ tag)
+
+#HOW TO MAKE USEFUL GRAPHS?!
+
+  
+```
+
+Searching forr sequences not found in err data.
+
+```{r}
+notFound = lapply(1:length(err_files), function(x, err, ref){
+  errNames = names(err)[x]
+  tag = gsub(pattern = ".*\\.(tag\\d{1,2})\\..*", replacement = "\\1", x = errNames)
+  error = gsub(pattern = ".*\\.error(\\d{1,2})\\..*", replacement = "\\1", x = errNames)
+
+  if (tag == "tag8") {
+    diff = setdiff(ref$primer_tag_ngs_DAB053demo01.tag8.txt$sequence_num, err[[x]]$sequence_num)
+    refDf = ref$primer_tag_ngs_DAB053demo01.tag8.txt
+  }else if(tag == "tag12"){
+    diff = setdiff(ref$primer_tag_ngs_DAB053demo01.tag12.txt$sequence_num, err[[x]]$sequence_num)
+    refDf = ref$primer_tag_ngs_DAB053demo01.tag12.txt
+  }else if(tag == "tag16"){
+    diff = setdiff(ref$primer_tag_ngs_DAB053demo01.tag16.txt$sequence_num, err[[x]]$sequence_num)
+    refDf = ref$primer_tag_ngs_DAB053demo01.tag16.txt
+  }
+  
+  diffDf = filter(refDf, sequence_num %in% diff)  
+  diffDf = mutate(diffDf, tag = tag)
+  diffDf = mutate(diffDf, error = error)
+
+  diffDf
+  
+  
+}, err = err_files, ref = ref_files)
+
+```
+
+Summary of not found sequences.
+
+```{r}
+
+notFoundN = lapply(notFound, function(x){
+  df = x %>%
+    group_by(tag_combo, primer1, primer2, tag, error) %>%
+    summarise(nf = n()) %>%
+    arrange(desc(nf))
+  df
+})
+
+notFoundSummary = lapply(notFoundN, summary)
+```
+
+Precentage of not found sequences compred to reference data.
+
+```{r}
+notFoundNdf = do.call(rbind, notFoundN)
+ref_filesdf = do.call(rbind, ref_files)
+ref_filesdf = ref_filesdf %>%
+  group_by(tag_combo, primer1, primer2) %>%
+  summarise(n0 = n())
+
+notFound0 = right_join(ref_filesdf, notFoundNdf)
+
+notFound0 = notFound0 %>%
+  mutate(perc = nf/n0) %>%
+  mutate(diff = n0 - nf)
+
+```
+
