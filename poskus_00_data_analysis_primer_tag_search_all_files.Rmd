@@ -1,0 +1,382 @@
+---
+title: "poskus_00_data_analysis_primer_tag_search_all_files"
+author: "Luka Močivnik"
+date: "10/21/2020"
+output: html_document
+---
+
+```{r}
+library(data.table)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(forcats)
+library(parallel)
+```
+
+#Data import
+
+Reference data import.
+
+```{r}
+ref_files = list.files(path = "./data/tag_primer_hits/", pattern = ".+DAB053demo01.tag\\d{1,2}\\.txt$", full.names = TRUE)
+ref_files = ref_files[grep(pattern = ".*hits_tag_[f,r]_DAB053.*", x = ref_files, invert = TRUE)]
+
+ref_primer = ref_files[grep(pattern = ".*hits_primer_[f,r]_DAB053.*", x = ref_files)]
+ref_tag = ref_files[grep(pattern = ".*hits_tag_[f,r]_filter_DAB053.*", x = ref_files)]
+
+ref_names = list.files(path = "./data/tag_primer_hits/", pattern = ".+DAB053demo01.tag\\d{1,2}\\.txt$")
+ref_names = ref_names[grep(pattern = "hits_tag_[f,r]_DAB053.*", x = ref_names, invert = TRUE)]
+
+ref_names_primer = ref_names[grep(pattern = ".*hits_primer_[f,r]_DAB053.*", x = ref_names)]
+ref_names_tag = ref_names[grep(pattern = ".*hits_tag_[f,r]_filter_DAB053.*", x = ref_names)]
+
+
+ref_primer = lapply(ref_primer, fread)
+ref_primer = mclapply(ref_primer, as.matrix)
+names(ref_primer) = ref_names_primer
+
+ref_tag = lapply(ref_tag, fread)
+ref_tag = mclapply(ref_tag, as.matrix)
+names(ref_tag) = ref_names_tag
+
+rm(ref_names, ref_names_primer, ref_names_tag)
+```
+
+Chekching no error data, if all there are primers and tags found in all sequences.
+
+```{r, eval=F}
+lapply(ref_primer, function(x){
+  sum((colSums(x)) == 1) == ncol(x)
+})
+
+lapply(ref_tag, function(x){
+  sum((colSums(x)) == 1) == ncol(x)
+})
+```
+
+Tag and primer import, for all tags.
+
+```{r}
+source("./functions/import_functions_00.R")
+
+primer_import()
+
+tag_import(input_path = "./data/tags_primers/UrsusNGSPrimerslistwithtags.xlsx", input_sheet = "Tag crossbreeding ")
+
+tags8 = tags
+tags_u8 = tags_u
+tags_uDNA8 = tags_uDNA
+
+tag_import(input_path = "./data/tags_primers/UrsusNGSPrimersCrosbreeding.Ljubljana.18Jul2017_12tag.switch.xlsx", input_sheet = "Tag crossbreeding")
+
+tags12 = tags
+tags_u12 = tags_u
+tags_uDNA12 = tags_uDNA
+
+tag_import(input_path = "./data/tags_primers/UrsusNGSPrimersCrosbreeding.Ljubljana.18Jul2017_16tag.switch.xlsx", input_sheet = "Tag crossbreeding")
+
+tags16 = tags
+tags_u16 = tags_u
+tags_uDNA16 = tags_uDNA
+
+rm(tags, tags_u, tags_uDNA)
+```
+
+Importing error data.
+
+```{r}
+files_primer = "hits_primer_[f,r]_DAB.*s100.*"
+err_primer = list.files(path = "./data/tag_primer_hits/", pattern = files_primer, full.names = TRUE)
+err_primer_names = list.files(path = "./data/tag_primer_hits/", pattern = files_primer)
+
+files_tag = "hits_tag_[f,r]_filter_DAB.*s100.*"
+err_tag = list.files(path = "./data/tag_primer_hits/", pattern = files_tag, full.names = TRUE)
+err_tag_names = list.files(path = "./data/tag_primer_hits/", pattern = files_tag)
+
+
+err_primer = lapply(err_primer, fread)
+err_primer = mclapply(err_primer, as.matrix)
+names(err_primer) = err_primer_names
+
+err_tag = lapply(err_tag, fread)
+err_tag = mclapply(err_tag, as.matrix)
+names(err_tag) = err_tag_names
+
+rm(err_primer_names, err_tag_names)
+```
+
+Checking number of sequences.
+
+```{r, eval=F}
+
+lapply(err_primer, function(x){
+  sum((colSums(x)) == 1)
+})
+lapply(err_tag, function(x){
+  sum((colSums(x)) == 1)
+})
+
+```
+
+Finding numbers of individual primers and tags found
+
+```{r}
+indPrimerRef = lapply(ref_primer, rowSums)
+indTagRef = lapply(ref_tag, rowSums)
+
+indPrimerErr = mclapply(err_primer, rowSums)
+indTagErr = mclapply(err_tag, rowSums)
+
+```
+
+
+Making dataframes for comparisons
+
+```{r, eval=F}
+#indPrimerRef$hits_primer_f_DAB053demo01.tag8.txt
+
+# lapply(indPrimerRef, function(x){
+#   nameRef = names(x)
+# })
+
+indPrimer8df = do.call(rbind, indPrimerErr[grepl(pattern = ".*_f_.*tag8.*", x = names(indPrimerErr))])
+indPrimer8df = rbind(indPrimerRef$hits_primer_f_DAB053demo01.tag8.txt, indPrimer8df)
+
+colnames(indPrimer8df) = primers_u
+#indPrimer8df
+
+rows = rownames(indPrimer8df)
+rows = gsub(pattern = ".*error(\\d{1,2}).*", replacement = "\\1", x = rows)
+error = as.integer(rows)
+
+indPrimer8df = cbind(error, indPrimer8df)
+indPrimer8df = replace_na(indPrimer8df, 0)
+
+indPrimer8df = indPrimer8df[order(indPrimer8df[,"error"]),]
+indPrimer8df
+```
+
+Defining function for making tables for comparing found primer and tag numbers
+
+```{r}
+numComparison = function(primerTagRef, primerTagErr){
+  out = lapply(1:length(primerTagRef), function(x, list, listErr){
+  
+  nameList = names(list[x])
+  nameNum = gsub(pattern = ".*tag(\\d{1,2}).*", replacement = "\\1", x = nameList)
+  nameDir = gsub(pattern = ".*_([f,r])_.*", replacement = "\\1", x = nameList)
+  searchPattern = sprintf(".*_%s_.*tag%s.*", nameDir, nameNum)
+  indPrimerdf = do.call(rbind, listErr[grepl(pattern = searchPattern, x = names(listErr))])
+  indPrimerdf = rbind(list[[x]], indPrimerdf)
+  
+  tagPrimer = gsub(pattern = "hits_(.*)_[f,r]_.*", replacement = "\\1", x = nameList)
+  if (tagPrimer == "primer") {
+    colnames(indPrimerdf) = primers_u
+  }else if(tagPrimer == "tag" & nameNum == "8"){
+    colnames(indPrimerdf) = tags_u8
+  }else if(tagPrimer == "tag" & nameNum == "12"){
+    colnames(indPrimerdf) = tags_u12
+  }else if(tagPrimer == "tag" & nameNum == "16"){
+    colnames(indPrimerdf) = tags_u16
+  }
+  
+  rows = rownames(indPrimerdf)
+  rows = gsub(pattern = ".*error(\\d{1,2}).*", replacement = "\\1", x = rows)
+  error = as.integer(rows)
+  
+  indPrimerdf = cbind(error, indPrimerdf)
+  indPrimerdf = replace_na(indPrimerdf, 0)
+  indPrimerdf = indPrimerdf[order(indPrimerdf[,"error"]),]
+
+  direction = rep(nameDir, times = nrow(indPrimerdf))
+  indPrimerdf = cbind(direction, indPrimerdf)
+  
+  rownames(indPrimerdf)[1] = nameList
+  
+  indPrimerdf
+    
+}, list = primerTagRef, listErr = primerTagErr)
+  outnames = names(primerTagRef)
+  names(out) = outnames
+  return(out)
+
+  
+}
+```
+
+Using the finction
+
+```{r}
+primerNumComparison = numComparison(primerTagRef = indPrimerRef, primerTagErr = indPrimerErr)
+tagNumComparison = numComparison(primerTagRef = indTagRef, primerTagErr = indTagErr)
+```
+
+Graph for number comparison.
+
+```{r}
+graphNumComparison = function(data){
+  
+  lapply(data, function(x){
+    df = as.data.frame(x)
+    dfNames = colnames(df)[3:ncol(df)]
+    
+    fdRowsnames = rownames(df)[1]
+    fdRowsnames = gsub(pattern = "_", replacement = " ", x = fdRowsnames)
+    fdRowsnames = gsub(pattern = "(.*\\.tag\\d{1,2}).*", replacement = "\\1", x = fdRowsnames)
+    fdRowsnames = gsub(pattern = "\\.", replacement = " ", x = fdRowsnames)
+    
+    dfDraw = df %>%
+      gather(dfNames, key = primer, value = number) %>%
+      mutate(error = as.factor(as.integer(as.character(error))))
+    
+    ggplot(dfDraw, aes(fct_inorder(primer), as.integer(number), color = error)) +
+      theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+      ggtitle(fdRowsnames) +
+      geom_point()
+  })
+
+}
+
+```
+
+```{r}
+graphNumComparison(primerNumComparison)
+graphNumComparison(tagNumComparison)
+```
+
+Finding rercentage of found sequences
+
+```{r}
+
+percData = function(data, zeroRm = TRUE){
+  
+  data_percentage = lapply(data, function(x, rmZero){
+   
+    df = as.data.frame(x, stringsAsFactors = FALSE)
+    dfNum = as.data.frame(x[,3:ncol(x)], stringsAsFactors = FALSE)
+    dfNum = sapply(dfNum, as.integer)
+    
+    dfPerc = sapply(1:nrow(dfNum), function(y, df){
+
+      perc = round((df[y,]/df[1,]), 3)
+      perc
+
+    }, df = dfNum)
+  
+    dfPerc = t(dfPerc)
+    error = as.integer(df$error)
+    dfPerc = cbind(error, dfPerc)
+    
+    if (rmZero == TRUE) {
+      dfPerc = dfPerc[2:nrow(dfPerc),]
+      rowNamesPerc = rownames(x)[2:nrow(x)]
+      rownames(dfPerc) = rowNamesPerc
+    }else{
+      rowNamesPerc = rownames(x)
+      rownames(dfPerc) = rowNamesPerc
+    }
+    dfPerc
+    
+  }, rmZero = zeroRm)
+  
+  namesDperc = names(data)
+  names(data_percentage) = namesDperc
+  
+  return(data_percentage)
+}
+
+```
+
+
+```{r}
+primerFoundPerc = percData(data = primerNumComparison)
+tagFoundPerc = percData(data = tagNumComparison)
+```
+
+Graphs
+
+```{r}
+drawPerc = function(data){
+  
+  datanames = names(data)
+  lapply(data, function(x){
+    
+    df = as.data.frame(x, stringsAsFactors = FALSE)
+    nameX = colnames(x)[2:ncol(x)]
+    
+    drawDf = df %>%
+      gather(nameX, key = primer, value = percentage_found) %>%
+      na_if(Inf)
+    
+    fdRowsnames = rownames(df)[1]
+    fdRowsnames = gsub(pattern = "_", replacement = " ", x = fdRowsnames)
+    fdRowsnames = gsub(pattern = "(.*\\.tag\\d{1,2}).*", replacement = "\\1", x = fdRowsnames)
+    fdRowsnames = gsub(pattern = "\\.", replacement = " ", x = fdRowsnames)
+    
+    ggplot(drawDf, aes(fct_inorder(primer), percentage_found, color = as.factor(error))) +
+      theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+      ggtitle(fdRowsnames) +
+      geom_point()
+    
+  })
+}
+
+```
+
+```{r}
+drawPerc(primerFoundPerc)
+drawPerc(tagFoundPerc)
+```
+
+Estimating number of mismatches.
+
+```{r}
+diffData = function(data, zeroRm = TRUE){
+  diffout = lapply(data, function(x, rmZero){
+    
+    df = as.data.frame(x, stringsAsFactors = FALSE)
+    dfNum = as.data.frame(x[,3:ncol(x)], stringsAsFactors = FALSE)
+    dfNum = sapply(dfNum, as.integer)
+    
+    dfDiff = sapply(1:nrow(dfNum), function(y, df){
+      diff = df[y,]-df[1,]
+      diff
+    }, df = dfNum)
+    
+    dfDiff = t(dfDiff)
+    
+    dfDiff = apply(dfDiff, c(1,2), function(y){
+      if (y < 0) {
+        y = NA
+      }else{y = y}
+    })
+    
+    error = as.integer(df$error)
+    dfDiff = cbind(error, dfDiff)
+    
+    if (rmZero == TRUE) {
+      dfDiff = dfDiff[2:nrow(dfDiff),]
+      rowNamesDiff = rownames(x)[2:nrow(x)]
+      rownames(dfDiff) = rowNamesDiff
+    }else{
+      rowNamesDiff = rownames(x)
+      rownames(dfDiff) = rowNamesDiff
+    }
+    
+    
+    dfDiff
+    
+  }, rmZero = zeroRm)
+  
+  return(diffout)
+}
+
+```
+
+
+```{r}
+diffPrimer = diffData(data = primerNumComparison)
+diffTag = diffData(data = tagNumComparison)
+```
+
