@@ -4,7 +4,7 @@
 #default new tags are 16 bp tags used in later pipeline
 
 
-tag_switch = function(new_tags = "./data/new_tags/barcode_16.txt", output = "./data/demo_data/", import_function_source = "./functions/import_functions_00.R", demo_data_input_folder = "./data/demo_data", demo_data_input_file = "DAB053_demo01.fastq", old_tag_input_path = "./data/tags_primers/Ursus\ NGS\ Primers\ list\ with\ tags.xlsx"){
+tag_switch = function(new_tags = "./data/new_tags/barcode_16.txt", output = "./data/demo_data/", import_function_source = "./functions/import_functions_00.R", demo_data_input_folder = "./data/demo_data", demo_data_input_file = "DAB053_demo01.fastq", old_tag_input_path = "./data/tags_primers/Ursus\ NGS\ Primers\ list\ with\ tags.xlsx", old_tag_input_sheet = "Tag crossbreeding "){
   
   #importing required libraries and sourcing functions
   require(dplyr)
@@ -13,7 +13,7 @@ tag_switch = function(new_tags = "./data/new_tags/barcode_16.txt", output = "./d
   require(readxl)
   require(stringr)
   
-  #source(file = import_function_source)
+  source(file = import_function_source)
   
   
   #importing new tags
@@ -23,7 +23,7 @@ tag_switch = function(new_tags = "./data/new_tags/barcode_16.txt", output = "./d
   demo_data_import(input_folder = demo_data_input_folder, input_file = demo_data_input_file, subset_seq = FALSE)
   
   #importing old tags
-  tag_import(input_path = old_tag_input_path)
+  tag_import(input_path = old_tag_input_path, input_sheet = old_tag_input_sheet)
   
   #sorting new tags
   tags_new = tag_import %>%
