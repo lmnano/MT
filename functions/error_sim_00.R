@@ -60,7 +60,7 @@ error_sim = function(x = "./data/demo_data/", file = "DAB053demo01.tag16.fastq",
       }else if((vlseq_split[[j]][rnd_n[i]] == rnd_b[i]) & (rnd_b[i] == "G")){
         rnd_b[i] = "A"
       }else if (rnd_b[i] == "D") {
-        insert = sample(base[1:4], size = 1)
+        insert = sample(c("A", "C", "T", "G"), size = 1)
         rnd_b[i] = str_c(vlseq_split[[j]][rnd_n[i]], insert)
       }
     }
@@ -115,7 +115,7 @@ error_sim = function(x = "./data/demo_data/", file = "DAB053demo01.tag16.fastq",
   
   #saving data
   
-  writeFastq(object = reads_err, file = out_final, mode = "w", compress = TRUE)
+  writeFastq(object = reads_err, file = out_final, mode = "w", compress = FALSE)
   #reads_err <<- reads_err
   return()
   
