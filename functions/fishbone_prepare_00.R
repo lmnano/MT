@@ -15,15 +15,15 @@ fishbone_prepare = function(input = grouped_data_consensus_par_mclapply, library
         #filter(cluster == 1) %>%
         mutate(locus = as.character(locus)) %>%
         mutate(locus = gsub(pattern = ".*(\\d{2})$", replacement = "\\1", x = locus)) %>%
-        rename(Marker = locus) %>%
+        dplyr::rename(Marker = locus) %>%
         mutate(Plate = gsub(pattern = ".*\\w{2}(\\d{+})$", replacement = "\\1", x = sample)) %>%
         mutate(Position = gsub(pattern = ".*_(\\d*)_.*", replacement = "\\1", x = sample)) %>%
         mutate(Sample_Name = gsub(pattern = "^(.*)_.*_.*$", replacement = "\\1", x = sample)) %>%
-        rename(Read_Count = num_of_seqs_in_cluster) %>%
+        dplyr::rename(Read_Count = num_of_seqs_in_cluster) %>%
         #next line for NOcluster only, otherwise use line above
-        #rename(Read_Count = n) %>%
-        rename(length = seq_length) %>%
-        rename(Sequence = consensus_seq) %>%
+        #dplyr::rename(Read_Count = n) %>%
+        dplyr::rename(length = seq_length) %>%
+        dplyr::rename(Sequence = consensus_seq) %>%
         mutate(Sequence = tolower(as.character(Sequence))) %>%
         select(-c(sample, n, cluster)) %>%
         #next line for NOcluster only, otherwise use line above
@@ -31,22 +31,22 @@ fishbone_prepare = function(input = grouped_data_consensus_par_mclapply, library
         
         #manually added needs to be automated
         mutate(Run_Name = NGSlibrary) %>%
-        rename(TagCombo = tag_combo)
+        dplyr::rename(TagCombo = tag_combo)
       
     }else{
       grouped_data_consensus_fb = input %>%
         filter(cluster == 1) %>%
         mutate(locus = as.character(locus)) %>%
         mutate(locus = gsub(pattern = ".*(\\d{2})$", replacement = "\\1", x = locus)) %>%
-        rename(Marker = locus) %>%
+        dplyr::rename(Marker = locus) %>%
         mutate(Plate = gsub(pattern = ".*\\w{2}(\\d{+})$", replacement = "\\1", x = sample)) %>%
         mutate(Position = gsub(pattern = ".*_(\\d*)_.*", replacement = "\\1", x = sample)) %>%
         mutate(Sample_Name = gsub(pattern = "^(.*)_.*_.*$", replacement = "\\1", x = sample)) %>%
-        rename(Read_Count = num_of_seqs_in_cluster) %>%
+        dplyr::rename(Read_Count = num_of_seqs_in_cluster) %>%
         #next line for NOcluster only, otherwise use line above
-        #rename(Read_Count = n) %>%
-        rename(length = seq_length) %>%
-        rename(Sequence = consensus_seq) %>%
+        #dplyr::rename(Read_Count = n) %>%
+        dplyr::rename(length = seq_length) %>%
+        dplyr::rename(Sequence = consensus_seq) %>%
         mutate(Sequence = tolower(as.character(Sequence))) %>%
         select(-c(sample, n, cluster)) %>%
         #next line for NOcluster only, otherwise use line above
@@ -54,7 +54,7 @@ fishbone_prepare = function(input = grouped_data_consensus_par_mclapply, library
         
         #manually added needs to be automated
         mutate(Run_Name = NGSlibrary) %>%
-        rename(TagCombo = tag_combo)
+        dplyr::rename(TagCombo = tag_combo)
       
     }
     
@@ -63,19 +63,19 @@ fishbone_prepare = function(input = grouped_data_consensus_par_mclapply, library
     grouped_data_consensus_fb = input %>%
       mutate(locus = as.character(locus)) %>%
       mutate(locus = gsub(pattern = ".*(\\d{2})$", replacement = "\\1", x = locus)) %>%
-      rename(Marker = locus) %>%
+      dplyr::rename(Marker = locus) %>%
       mutate(Plate = gsub(pattern = ".*\\w{2}(\\d{+})$", replacement = "\\1", x = sample)) %>%
       mutate(Position = gsub(pattern = ".*_(\\d*)_.*", replacement = "\\1", x = sample)) %>%
       mutate(Sample_Name = gsub(pattern = "^(.*)_.*_.*$", replacement = "\\1", x = sample)) %>%
-      rename(Read_Count = n) %>%
-      rename(length = seq_length) %>%
-      rename(Sequence = consensus_seq) %>%
+      dplyr::rename(Read_Count = n) %>%
+      dplyr::rename(length = seq_length) %>%
+      dplyr::rename(Sequence = consensus_seq) %>%
       mutate(Sequence = tolower(as.character(Sequence))) %>%
       select(-c(sample)) %>%
       
       #manually added needs to be automated
       mutate(Run_Name = NGSlibrary) %>%
-      rename(TagCombo = tag_combo)
+      dplyr::rename(TagCombo = tag_combo)
     
   }
   
