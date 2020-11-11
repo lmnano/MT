@@ -32,19 +32,19 @@ alignment = function(input = primer_tag_ngs){
   fictional03 = DNAString(c(ref03flank1, repeat03, ref03flank2))
   
   #making locus06 fake sequence
-  ref06flank1 = DNAString("G")
+  #ref06flank1 = DNAString("")
   ref06flank2 = DNAString("AAAAGAAGACAGATTGTAA")
   
   motif06 = "AAGG"
   repeat06 = rep(motif06, times = 25)
-  repeat06 = DNAString(paste(repeat06, collapse = ""))
+  repeat06 = DNAString(paste( repeat06, collapse = ""))
   
-  fictional06 = DNAString(c(ref06flank1, repeat06, ref06flank2))
+  fictional06 = DNAString(c(repeat06, ref06flank2))
   
   #making locus17 flanking sequence
   
-  ref17flank1 = DNAString("CTAGCTGGTTTTCTTTTT")
-  ref17flank2 = DNAString("TGATGGATATTTATTTCT")
+  ref17flank1 = DNAString("TAGCTGGTTTTCTTTTT")
+  ref17flank2 = DNAString("GATGGATATTTATTTCT")
   
   motif17 = "CTTT"
   repeat17 = rep(motif17, times = 25)
