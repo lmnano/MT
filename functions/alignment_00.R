@@ -9,14 +9,28 @@ alignment = function(input = primer_tag_ngs){
   require(parallel)
   
   #filtering out multiple matches and splittin in sample-locus groups
-  primer_tag_ngs2 = input %>%
+  # primer_tag_ngs2 = input %>%
+  #   group_by(sequence) %>%
+  #   filter(n() == 1) %>%
+  #   ungroup() %>%
+  #   group_by(sample, locus) %>%
+  #   arrange(.by_group = TRUE) %>%
+  #   add_count() %>%
+  #   group_split()
+ 
+  primer_tag_ngs2 = primer_tag_ngs %>%
     group_by(sequence) %>%
-    filter(n() == 1) %>%
+    group_by(sequence_num) %>%
+    distinct() %>%
+    add_count() %>%
+    filter(n == 1) %>%
     ungroup() %>%
+    select(-n) %>%
     group_by(sample, locus) %>%
     arrange(.by_group = TRUE) %>%
     add_count() %>%
     group_split()
+  
   
   #for testing only
   #primer_tag_ngs2 = primer_tag_ngs2[1:3]
